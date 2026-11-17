@@ -25,7 +25,7 @@ VISION connects patients, ambulances, hospitals and administrators during crisis
 Every bed is **free**, **reserved** (held for an incoming ambulance from the moment of dispatch) or **occupied**. Hospital staff can admit a walk-in patient:
 
 - If a bed is free, the walk-in is admitted.
-- If the only bed left is reserved, a **bed conflict** is raised to the dispatcher with a countdown (15 s in the demo).
+- If the only bed left is reserved, a **bed conflict** is raised to the dispatcher with a countdown (12 s in the demo).
 - **Time rule:** if the ambulance is within the 5-minute hold window, the recommendation is to keep the reservation and transfer the walk-in. If it is further away and another hospital can take that patient, the recommendation is to give the bed to the walk-in and re-route the ambulance.
 - If nobody decides before the countdown ends, the recommended option is applied automatically and logged.
 
@@ -62,7 +62,7 @@ Optional: `GEMINI_API_KEY=...` or `ANTHROPIC_API_KEY=...` to enable model-writte
 - All data is simulated demo data with fictional hospitals. The map is a schematic city grid (20 x 12 km).
 - State is kept in memory. On Vercel it lives in the running function instance, so it resets when the instance restarts. A database (for example Postgres) is the next step for production.
 - There is no login in this hackathon build: the role switcher (Admin, Hospital staff, Patient) is for the demo. Production needs authentication and role checks on every write endpoint, and patients should only see their own request.
-- Ambulances move faster than real time so the demo flow completes in under a minute.
+- Ambulances move faster than real time so a full trip takes about 30 to 40 seconds in the demo.
 
 ## Built with AI
 

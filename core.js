@@ -1,7 +1,7 @@
 /* VISION core: state, simulation, AI recommendations and the REST API handler.
    Used by server.js (local / any Node host) and by api/index.js (Vercel function). Zero dependencies. */
 const KM = 0.2;                       // 1 map unit = 0.2 km (city is 20 x 12 km)
-const SPEED = 1.5;                    // map units per tick (demo speed)
+const SPEED = 0.8;                    // map units per tick (demo speed: a typical trip takes 30-40 s)
 const km = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) * KM;
 const etaMin = d => Math.max(1, Math.round(d / 0.6));   // ~36 km/h
 const now = () => Date.now();
@@ -9,7 +9,7 @@ const DISTRICTS = [["Birnin Zana Sector 4", 38, 30], ["North Corridor", 66, 22],
 const areaOf = p => DISTRICTS.map(d => [d[0], Math.hypot(d[1] - p.x, d[2] - p.y)]).sort((a, b) => a[1] - b[1])[0][0];
 const SPECIALTY = { "Chest pain": "Cardiac", "Accident": "Trauma", "Breathing problem": "Respiratory", "Pregnancy": "Maternity", "Burns": "Burns" };
 const HOLD_MIN = 5;                   // a reserved bed is protected when the ambulance is this close (minutes)
-const DECIDE_MS = 15000;              // time the dispatcher has to decide a bed conflict (short, because the demo runs faster than real time)
+const DECIDE_MS = 12000;              // time the dispatcher has to decide a bed conflict (short, because the demo runs faster than real time)
 const ITEMS = { oxygen: "Oxygen cylinders", blood: "Blood units", ventilators: "Ventilators", medicines: "Key medicines" };
 
 let S, seq, clients = [];
@@ -205,7 +205,7 @@ function step(a, target) { const dx = target.x - a.x, dy = target.y - a.y, d = M
 function tickOnce() {
   S.ambulances.forEach(a => {
     const e = a.emergencyId && E(a.emergencyId); if (!e) return;
-    if (a.status === "dispatched") { if (step(a, e)) { a.status = "at_scene"; a.wait = 3; e.status = "at_scene"; log(`${a.id} reached the patient for ${e.id}`, "ok"); } }
+    if (a.status === "dispatched") { if (step(a, e)) { a.status = "at_scene"; a.wait = 4; e.status = "at_scene"; log(`${a.id} reached the patient for ${e.id}`, "ok"); } }
     else if (a.status === "at_scene") { if (--a.wait <= 0) { a.status = "to_hospital"; e.status = "to_hospital"; log(`${a.id} is taking the patient to ${H(e.hospitalId).name}`, "info"); } }
     else if (a.status === "to_hospital") { const h = H(e.hospitalId); if (step(a, h)) { e.status = "completed"; e.completedAt = now(); h[RK(e.bedKind || "bed")] = Math.max(0, h[RK(e.bedKind || "bed")] - 1); h.erLoad = Math.min(100, h.erLoad + 3); a.status = "available"; a.emergencyId = null; log(`${e.id} completed: patient handed over at ${h.name}`, "ok"); } }
   });
