@@ -11,6 +11,7 @@ import Transfers from "./pages/Transfers.jsx";
 import Insights from "./pages/Insights.jsx";
 import StaffUpdate from "./pages/StaffUpdate.jsx";
 import Patient from "./pages/Patient.jsx";
+import Conflicts from "./components/Conflicts.jsx";
 
 const NAV = [
   ["Operations", [["/overview", "dashboard", "Overview"], ["/emergencies", "e911_emergency", "Emergencies"], ["/ambulances", "ambulance", "Ambulances"]]],
@@ -71,6 +72,7 @@ export default function App() {
           </div>
         </header>
         <main className="flex-1 p-4 lg:p-6">
+          {st && !loc.pathname.startsWith("/patient") && <Conflicts />}
           {!st ? <Loading text="Connecting to the VISION network..." /> : (
             <Routes>
               <Route path="/overview" element={<Overview />} />

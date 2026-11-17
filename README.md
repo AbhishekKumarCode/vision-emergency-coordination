@@ -20,6 +20,17 @@ VISION connects patients, ambulances, hospitals and administrators during crisis
 | AI Insights | Written situation summary, 6-hour ICU forecast, hospitals likely to reach capacity, suggested actions |
 | Hospital staff | Update beds, emergency room status and stock; dispatchers see it immediately |
 
+## Beds, walk-ins and the time rule
+
+Every bed is **free**, **reserved** (held for an incoming ambulance from the moment of dispatch) or **occupied**. Hospital staff can admit a walk-in patient:
+
+- If a bed is free, the walk-in is admitted.
+- If the only bed left is reserved, a **bed conflict** is raised to the dispatcher with a countdown (15 s in the demo).
+- **Time rule:** if the ambulance is within the 5-minute hold window, the recommendation is to keep the reservation and transfer the walk-in. If it is further away and another hospital can take that patient, the recommendation is to give the bed to the walk-in and re-route the ambulance.
+- If nobody decides before the countdown ends, the recommended option is applied automatically and logged.
+
+Who is treated first is a clinical decision. VISION only manages beds and routes.
+
 ## How the AI works
 
 1. **Scoring engine (always on).** Ranks every free ambulance by distance and every hospital by distance, free ICU or general beds, emergency room load, a matching specialist unit and oxygen stock. Hospitals that are diverting or have no bed are excluded.

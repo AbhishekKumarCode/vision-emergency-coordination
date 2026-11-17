@@ -7,7 +7,7 @@ import { Empty, HospStatus, Icon, PageHead, SupplyStatus } from "../components/u
 const ER = [["Quiet", 40], ["Busy", 78], ["Full", 96]];
 
 export default function StaffUpdate() {
-  const { st, api, run } = useStore();
+  const { st, api, run, notify } = useStore();
   const [sp, setSp] = useSearchParams();
   const id = st.hospitals.some(h => h.id === sp.get("h")) ? sp.get("h") : st.hospitals[1].id;
   const h = st.hospitals.find(x => x.id === id);
@@ -18,6 +18,7 @@ export default function StaffUpdate() {
   if (!f) return null;
   const step = (k, d, max) => setF(v => ({ ...v, [k]: Math.max(0, Math.min(max, v[k] + d)) }));
   const save = async () => { setSaving(true); await run(() => api("/hospitals/" + id, { icuFree: f.icuFree, bedsFree: f.bedsFree, erLoad: ER.find(e => e[0] === f.er)[1], supplies: f.supplies }), "Saved. Dispatchers can see the update now."); setSaving(false); };
+  const walkIn = async kind => { const r = await run(() => api("/hospitals/" + id + "/walkin", { kind })); if (r) { notify(r.message); setF(v => ({ ...v, icuFree: r.icuFree, bedsFree: r.bedsFree })); } };
   const incoming = st.emergencies.filter(e => e.hospitalId === id && e.status !== "completed");
   const Row = ({ label, hint, k, max }) => (
     <div className="flex items-center justify-between gap-4 py-4 border-b border-line">
@@ -39,8 +40,8 @@ export default function StaffUpdate() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <div className="xl:col-span-8 card p-5">
           <h3 className="lbl">Beds</h3>
-          <Row label="ICU beds free" hint={"Out of " + h.icuTotal + " ICU beds"} k="icuFree" max={h.icuTotal} />
-          <Row label="General beds free" hint={"Out of " + h.bedsTotal + " beds"} k="bedsFree" max={h.bedsTotal} />
+          <Row label="ICU beds free" hint={`Out of ${h.icuTotal}. ${h.icuReserved} reserved for incoming ambulances, ${h.icuTotal - h.icuFree - h.icuReserved} occupied.`} k="icuFree" max={h.icuTotal - h.icuReserved} />
+          <Row label="General beds free" hint={`Out of ${h.bedsTotal}. ${h.bedsReserved} reserved for incoming ambulances, ${h.bedsTotal - h.bedsFree - h.bedsReserved} occupied.`} k="bedsFree" max={h.bedsTotal - h.bedsReserved} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 border-b border-line">
             <div><div className="text-[16px] font-semibold">Emergency room</div><div className="text-muted text-[13px]">How busy is it right now?</div></div>
             <div className="inline-flex rounded-lg border border-line overflow-hidden" role="group" aria-label="Emergency room status">
@@ -61,11 +62,21 @@ export default function StaffUpdate() {
             <button className="btn btn-red" disabled={saving} onClick={save}><Icon name="cloud_upload" />Save and share with dispatchers</button>
           </div>
         </div>
-        <div className="xl:col-span-4 card">
+        <div className="xl:col-span-4 space-y-6">
+        <div className="card p-4">
+          <h3 className="text-[16px] font-semibold flex items-center gap-2"><Icon name="directions_walk" className="text-brand" />Walk-in patient arrived</h3>
+          <p className="text-muted text-[13px] mt-1 mb-3">Admit a patient who came in directly. If the only bed left is reserved for an ambulance, the dispatcher gets a short countdown to decide, then the time rule applies.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button className="btn btn-red" onClick={() => walkIn("icu")}>Admit to ICU bed</button>
+            <button className="btn btn-line" onClick={() => walkIn("bed")}>Admit to general bed</button>
+          </div>
+        </div>
+        <div className="card">
           <div className="p-4 border-b border-line"><h3 className="text-[16px] font-semibold">Incoming patients</h3></div>
           {!incoming.length ? <Empty icon="airline_seat_flat" text="No patients are on the way right now." /> : (
             <ul className="divide-y divide-line">{incoming.map(e => { const eta = liveEta(e, st); return <li key={e.id} className="p-4"><div className="font-semibold">{e.type} <span className="font-mono text-[12px] text-muted">{e.id}</span></div><div className="text-muted text-[13px]">{ambName(e.ambulanceId)} · {e.bed} reserved{eta ? " · about " + eta.min + " min" : ""}</div></li>; })}</ul>
           )}
+        </div>
         </div>
       </div>
     </>

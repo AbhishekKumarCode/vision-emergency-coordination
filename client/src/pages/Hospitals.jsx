@@ -35,7 +35,7 @@ export default function Hospitals() {
           <button key={h.id} onClick={() => nav("/hospitals/" + h.id)} className="card p-5 text-left hover:border-ink transition-colors">
             <div className="flex items-start justify-between gap-2 mb-4"><div><h3 className="text-[18px] font-semibold">{h.name}</h3><p className="text-muted text-[13px]">{h.specialties.join(" · ")}</p></div><HospStatus s={h.status} /></div>
             <div className="space-y-3">
-              <div><div className="flex justify-between mb-1"><span>ICU beds free</span><b>{h.icuFree} / {h.icuTotal}</b></div><Bar value={h.icuTotal - h.icuFree} max={h.icuTotal} /></div>
+              <div><div className="flex justify-between mb-1"><span>ICU beds free{h.icuReserved > 0 && <span className="text-[#92400E]"> · {h.icuReserved} reserved</span>}</span><b>{h.icuFree} / {h.icuTotal}</b></div><Bar value={h.icuTotal - h.icuFree} max={h.icuTotal} /></div>
               <div><div className="flex justify-between mb-1"><span>General beds free</span><b>{h.bedsFree} / {h.bedsTotal}</b></div><Bar value={h.bedsTotal - h.bedsFree} max={h.bedsTotal} /></div>
               <div><div className="flex justify-between mb-1"><span>Emergency room</span><b>{erWord(h.erLoad)} ({h.erLoad}%)</b></div><Bar value={h.erLoad} /></div>
             </div>

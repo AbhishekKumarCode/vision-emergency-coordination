@@ -37,6 +37,23 @@ export default function Overview() {
         <Kpi label="Avg response time" value={st.avgResponse} unit="min" sub="From SOS to ambulance arrival" icon="timer" />
       </div>
 
+      <div className="card p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h3 className="text-[16px] font-semibold flex items-center gap-2"><Icon name="local_hospital" className="text-muted" />ICU beds by hospital</h3>
+          <div className="flex items-center gap-4 text-[12px] text-muted"><span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#CBD5E1]" />Occupied</span><span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-warn" />Reserved for an ambulance</span><span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-ok" />Free</span></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3">
+          {st.hospitals.map(h => { const occ = h.icuTotal - h.icuFree - h.icuReserved; return (
+            <button key={h.id} onClick={() => nav("/hospitals/" + h.id)} className="text-left group">
+              <div className="flex items-center justify-between mb-1"><span className="font-semibold group-hover:underline truncate">{h.name}</span><span className="text-[13px] text-muted shrink-0">{h.icuFree} free{h.icuReserved > 0 ? ", " + h.icuReserved + " reserved" : ""}</span></div>
+              <div className="flex h-2.5 rounded-full overflow-hidden bg-[#EEF0F3]" role="img" aria-label={`${h.name}: ${occ} occupied, ${h.icuReserved} reserved, ${h.icuFree} free of ${h.icuTotal} ICU beds`}>
+                <div className="bg-[#CBD5E1]" style={{ width: (occ / h.icuTotal) * 100 + "%" }} /><div className="bg-warn" style={{ width: (h.icuReserved / h.icuTotal) * 100 + "%" }} /><div className="bg-ok" style={{ width: (h.icuFree / h.icuTotal) * 100 + "%" }} />
+              </div>
+            </button>
+          ); })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <div className="xl:col-span-8 card overflow-hidden">
           <div className="p-4 border-b border-line flex flex-wrap items-center justify-between gap-2">

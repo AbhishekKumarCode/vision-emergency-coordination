@@ -16,7 +16,7 @@ export default function HospitalDetail() {
   const incoming = st.emergencies.filter(e => e.hospitalId === h.id && e.status !== "completed");
   const transfersIn = st.transfers.filter(t => t.to === h.id && t.status === "in_progress");
   const requestTransfer = async () => { const t = await run(() => api("/transfers", { from: h.id, need: "ICU bed", urgency: "Urgent", reason: "Capacity at " + h.name }), "Transfer request created"); if (t) nav("/transfers"); };
-  const cap = [["ICU beds free", h.icuFree, h.icuTotal, "bed"], ["General beds free", h.bedsFree, h.bedsTotal, "hotel"]];
+  const cap = [["ICU beds free", h.icuFree, h.icuTotal, "bed", h.icuReserved], ["General beds free", h.bedsFree, h.bedsTotal, "hotel", h.bedsReserved]];
   return (
     <>
       <Link to="/hospitals" className="inline-flex items-center gap-1 text-muted hover:text-ink mb-3"><Icon name="arrow_back" className="!text-[18px]" />All hospitals</Link>
@@ -26,8 +26,8 @@ export default function HospitalDetail() {
         <button className="btn btn-red" onClick={requestTransfer}><Icon name="swap_horiz" />Request patient transfer</button>
       </PageHead>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {cap.map(([l, free, tot, ic]) => (
-          <div key={l} className="card p-4"><div className="flex justify-between"><span className="lbl">{l}</span><Icon name={ic} className="text-info" /></div><div className="mt-2 text-[36px] leading-10 font-semibold">{free}<span className="text-[18px] text-muted font-normal"> / {tot}</span></div><div className="mt-3"><Bar value={tot - free} max={tot} /></div></div>
+        {cap.map(([l, free, tot, ic, resv]) => (
+          <div key={l} className="card p-4"><div className="flex justify-between"><span className="lbl">{l}</span><Icon name={ic} className="text-info" /></div><div className="mt-2 text-[36px] leading-10 font-semibold">{free}<span className="text-[18px] text-muted font-normal"> / {tot}</span></div><div className="mt-3"><Bar value={tot - free} max={tot} /></div><div className="mt-2 text-[13px] text-muted">{resv} reserved for incoming ambulances · {tot - free - resv} occupied</div></div>
         ))}
         <div className="card p-4"><div className="flex justify-between"><span className="lbl">Emergency room</span><Icon name="monitor_heart" className="text-brand" /></div><div className="mt-2 text-[36px] leading-10 font-semibold">{erWord(h.erLoad)}<span className="text-[18px] text-muted font-normal"> {h.erLoad}%</span></div><div className="mt-3"><Bar value={h.erLoad} /></div></div>
       </div>

@@ -8,6 +8,8 @@ const now = () => Date.now();
 const DISTRICTS = [["Birnin Zana Sector 4", 38, 30], ["North Corridor", 66, 22], ["Golden City District 3", 26, 20], ["Bashenga Heights", 82, 44], ["Old Market", 48, 48], ["Industrial Ward East", 90, 14], ["River Province", 14, 40]];
 const areaOf = p => DISTRICTS.map(d => [d[0], Math.hypot(d[1] - p.x, d[2] - p.y)]).sort((a, b) => a[1] - b[1])[0][0];
 const SPECIALTY = { "Chest pain": "Cardiac", "Accident": "Trauma", "Breathing problem": "Respiratory", "Pregnancy": "Maternity", "Burns": "Burns" };
+const HOLD_MIN = 5;                   // a reserved bed is protected when the ambulance is this close (minutes)
+const DECIDE_MS = 15000;              // time the dispatcher has to decide a bed conflict (short, because the demo runs faster than real time)
 const ITEMS = { oxygen: "Oxygen cylinders", blood: "Blood units", ventilators: "Ventilators", medicines: "Key medicines" };
 
 let S, seq, clients = [];
@@ -36,8 +38,10 @@ function seed() {
       { name: "CityCare Pharmacy", kind: "Pharmacies", x: 44, y: 26, note: "Open 24 hours" }, { name: "Golden City Pharmacy", kind: "Pharmacies", x: 24, y: 24, note: "Open until 11 pm" }, { name: "Harbour Chemists", kind: "Pharmacies", x: 46, y: 50, note: "Open 24 hours" },
       { name: "Central Blood Bank", kind: "Blood banks", x: 56, y: 22, note: "All groups available" }, { name: "Riverside Blood Centre", kind: "Blood banks", x: 18, y: 38, note: "O- and B- running low" }
     ],
-    events: [], responseTimes: [7, 6, 9], startedAt: now()
+    events: [], responseTimes: [7, 6, 9], startedAt: now(), conflicts: []
   };
+  S.hospitals.forEach(h => { h.icuReserved = 0; h.bedsReserved = 0; });
+  seq.cf = 1;
   S.emergencies.forEach(e => e.area = areaOf(e));
   log("Riverside Medical reported oxygen below minimum level", "warn");
   log("Northgate Clinic is diverting: ICU full", "crit");
@@ -51,7 +55,8 @@ const supStatus = s => s.stock <= 0 ? "Out" : s.stock < s.min ? "Low" : "OK";
 function publicState() {
   return {
     hospitals: S.hospitals.map(h => ({ ...h, status: hStatus(h), supplies: Object.fromEntries(Object.entries(h.supplies).map(([k, v]) => [k, { ...v, status: supStatus(v), label: ITEMS[k] }])) })),
-    ambulances: S.ambulances, emergencies: S.emergencies.map(({ phone, ...e }) => e), transfers: S.transfers, services: S.services, events: S.events.slice(0, 14),
+    ambulances: S.ambulances, emergencies: S.emergencies.map(({ phone, ...e }) => e), transfers: S.transfers, services: S.services,
+    conflicts: S.conflicts.filter(c => c.status === "open").map(c => ({ ...c, secondsLeft: Math.max(0, Math.round((c.deadline - now()) / 1000)), totalSeconds: DECIDE_MS / 1000, remaining: remainingMin(E(c.emergencyId)) })), events: S.events.slice(0, 14),
     avgResponse: +(S.responseTimes.reduce((a, b) => a + b, 0) / S.responseTimes.length).toFixed(1),
     ai: process.env.GEMINI_API_KEY ? "Gemini" : process.env.ANTHROPIC_API_KEY ? "Claude" : "Rules engine", t: now()
   };
@@ -102,6 +107,58 @@ function recommend(e) {
   return { ok: true, best, reasons, alternatives, headline: `Send ${best.ambulanceId.replace("AMB-0", "Ambulance ")} to ${best.hospitalName}.`, source: "Rules engine" };
 }
 
+/* ---------- beds: free / reserved / occupied, walk-ins and time-based conflict rule ---------- */
+const FK = k => (k === "icu" ? "icuFree" : "bedsFree"), RK = k => (k === "icu" ? "icuReserved" : "bedsReserved");
+function reserve(h, kind, n) { h[FK(kind)] -= n; h[RK(kind)] += n; }      // free -> reserved
+// Minutes until the ambulance of an emergency reaches its hospital.
+function remainingMin(e) {
+  if (!e || !e.ambulanceId) return null; const a = A(e.ambulanceId), h = H(e.hospitalId);
+  if (e.status === "en_route") return etaMin(km(a, e)) + etaMin(km(e, h));
+  if (e.status === "at_scene") return etaMin(km(e, h));
+  if (e.status === "to_hospital") return etaMin(km(a, h));
+  return null;
+}
+function altHospital(e, excludeId) {
+  const r = rankHospitals(e, e.bedKind === "icu", SPECIALTY[e.type]).filter(x => x.ok && x.h.id !== excludeId)[0];
+  if (!r) return null; const a = A(e.ambulanceId);
+  const eta = e.status === "en_route" ? etaMin(km(a, e)) + etaMin(km(e, r.h)) : etaMin(km(e.status === "at_scene" ? e : a, r.h));
+  return { hospitalId: r.h.id, name: r.h.name, eta };
+}
+function walkIn(h, kind) {
+  const label = kind === "icu" ? "ICU bed" : "bed";
+  if (h[FK(kind)] > 0) { h[FK(kind)]--; h.erLoad = Math.min(100, h.erLoad + 2); log(`Walk-in patient admitted to an ${label} at ${h.name}`, "info"); return { outcome: "admitted", message: `Walk-in admitted. ${h.name} now has ${h[FK(kind)]} ${label}s free.` }; }
+  const held = S.emergencies.filter(e => e.hospitalId === h.id && e.bedKind === kind && ["en_route", "at_scene", "to_hospital"].includes(e.status) && !S.conflicts.some(c => c.status === "open" && c.emergencyId === e.id))
+    .map(e => ({ e, rem: remainingMin(e) })).sort((a, b) => b.rem - a.rem)[0];
+  if (!held) { const t = newTransfer(h, kind === "icu" ? "ICU bed" : "General bed", "Urgent", `Walk-in patient, no free ${label} at ${h.name}`); return { outcome: "transfer", transferId: t.id, message: `No ${label} is free or reserved here. A transfer request was created for the walk-in patient.` }; }
+  const alt = altHospital(held.e, h.id), protect = held.rem <= HOLD_MIN || !alt;
+  const c = { id: "BC-" + (seq.cf++), hospitalId: h.id, hospitalName: h.name, kind, label, emergencyId: held.e.id, ambulanceId: held.e.ambulanceId, alt, recommended: protect ? "keep" : "reroute",
+    why: !alt ? "No other hospital has a suitable bed, so the ambulance cannot be re-routed." : protect ? `The ambulance arrives in ${held.rem} min, inside the ${HOLD_MIN}-minute hold window, so the reserved bed stays protected.` : `The ambulance is still ${held.rem} min away, outside the ${HOLD_MIN}-minute hold window, and ${alt.name} can take that patient.`,
+    createdAt: now(), deadline: now() + DECIDE_MS, status: "open" };
+  S.conflicts.unshift(c); log(`Bed conflict at ${h.name}: walk-in needs the ${label} reserved for ${held.e.id}`, "crit");
+  return { outcome: "conflict", conflictId: c.id, message: `The last ${label} is reserved for ${held.e.id}. The dispatcher has ${DECIDE_MS / 1000} seconds to decide.` };
+}
+function newTransfer(f, need, urgency, reason) {
+  const t = { id: "TR-00" + (seq.tr++), from: f.id, to: null, need, urgency, reason, status: "requested", createdAt: now(), timeline: [{ t: now(), text: `Transfer requested by ${f.name}` }], ticks: 0 };
+  S.transfers.unshift(t); log(`${f.name} requested a patient transfer (${need})`, "warn"); return t;
+}
+function resolveConflict(c, choice, by) {
+  if (!c || c.status !== "open") return "This conflict is already resolved.";
+  const e = E(c.emergencyId), h = H(c.hospitalId), who = by === "timer" ? `automatically after ${DECIDE_MS / 1000} s with no decision` : "by the dispatcher";
+  let alt = e && e.status !== "completed" ? altHospital(e, h.id) : null;
+  if (choice === "reroute" && !alt) choice = "keep";
+  if (choice === "reroute") {
+    h[RK(c.kind)]--;                                  // the reserved bed goes to the walk-in (now occupied)
+    const nh = H(alt.hospitalId); reserve(nh, c.kind, 1); e.hospitalId = nh.id; e.rerouted = true;
+    log(`${e.ambulanceId} re-routed to ${nh.name}; walk-in takes the ${c.label} at ${h.name} (${who})`, "warn");
+    c.result = `Walk-in admitted at ${h.name}. ${e.ambulanceId} re-routed to ${nh.name}.`;
+  } else {
+    const t = newTransfer(h, c.kind === "icu" ? "ICU bed" : "General bed", "Urgent", `Walk-in patient: the ${c.label} is held for ${c.emergencyId}`);
+    log(`Reservation kept for ${c.emergencyId} at ${h.name}; walk-in will be transferred (${who})`, "info");
+    c.result = `Reservation kept. Transfer ${t.id} created for the walk-in patient.`;
+  }
+  c.status = "resolved"; c.choice = choice; c.by = by; return null;
+}
+
 function dispatch(e, ambId, hospId) {
   const a = A(ambId), h = H(hospId);
   if (!e || e.status !== "waiting") return "This emergency is already being handled.";
@@ -109,8 +166,8 @@ function dispatch(e, ambId, hospId) {
   if (!h) return "Hospital not found.";
   const icu = e.severity === "Critical";
   if (icu ? h.icuFree <= 0 : h.bedsFree <= 0) return "That hospital has no free bed.";
-  if (icu) h.icuFree--; else h.bedsFree--;
-  e.bed = icu ? "ICU bed" : "bed";
+  reserve(h, icu ? "icu" : "bed", 1);
+  e.bedKind = icu ? "icu" : "bed"; e.bed = icu ? "ICU bed" : "bed";
   Object.assign(e, { status: "en_route", ambulanceId: a.id, hospitalId: h.id, dispatchedAt: now() });
   Object.assign(a, { status: "dispatched", emergencyId: e.id });
   S.responseTimes.push(Math.round((now() - e.createdAt) / 60000) + etaMin(km(a, e))); S.responseTimes = S.responseTimes.slice(-12);
@@ -150,13 +207,15 @@ function tickOnce() {
     const e = a.emergencyId && E(a.emergencyId); if (!e) return;
     if (a.status === "dispatched") { if (step(a, e)) { a.status = "at_scene"; a.wait = 3; e.status = "at_scene"; log(`${a.id} reached the patient for ${e.id}`, "ok"); } }
     else if (a.status === "at_scene") { if (--a.wait <= 0) { a.status = "to_hospital"; e.status = "to_hospital"; log(`${a.id} is taking the patient to ${H(e.hospitalId).name}`, "info"); } }
-    else if (a.status === "to_hospital") { const h = H(e.hospitalId); if (step(a, h)) { e.status = "completed"; e.completedAt = now(); h.erLoad = Math.min(100, h.erLoad + 3); a.status = "available"; a.emergencyId = null; log(`${e.id} completed: patient handed over at ${h.name}`, "ok"); } }
+    else if (a.status === "to_hospital") { const h = H(e.hospitalId); if (step(a, h)) { e.status = "completed"; e.completedAt = now(); h[RK(e.bedKind || "bed")] = Math.max(0, h[RK(e.bedKind || "bed")] - 1); h.erLoad = Math.min(100, h.erLoad + 3); a.status = "available"; a.emergencyId = null; log(`${e.id} completed: patient handed over at ${h.name}`, "ok"); } }
   });
   S.transfers.forEach(t => { if (t.status === "in_progress" && ++t.ticks >= 14) { t.status = "completed"; t.timeline.push({ t: now(), text: `Patient received at ${H(t.to).name}` }); log(`Transfer ${t.id} completed at ${H(t.to).name}`, "ok"); } });
 }
 // The simulation is advanced lazily from the clock, so it also works on serverless hosts with no background timer.
 let lastTick = Date.now();
-function advance() { let n = Math.min(45, Math.floor((Date.now() - lastTick) / 1000)); if (n > 0) { lastTick = Date.now(); while (n--) tickOnce(); } }
+function advance() { let n = Math.min(45, Math.floor((Date.now() - lastTick) / 1000)); if (n > 0) { lastTick = Date.now(); while (n--) tickOnce(); }
+  // Time constraint: an undecided bed conflict is settled by the recommended option when its deadline passes.
+  S.conflicts.forEach(c => { if (c.status !== "open") return; const e = E(c.emergencyId); if (!e || e.status === "completed") resolveConflict(c, "keep", "timer"); else if (now() >= c.deadline) resolveConflict(c, c.recommended, "timer"); }); }
 
 /* ---------- http ---------- */
 const send = (res, code, obj) => { res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(obj)); };
@@ -196,12 +255,14 @@ async function handle(req, res) {
     if ((mt = p.match(/^\/api\/ambulances\/([\w-]+)\/toggle$/)) && m === "POST") { const a = A(mt[1]); if (!a) return send(res, 404, { error: "Not found" }); if (a.status === "available") { a.status = "out_of_service"; log(`${a.id} marked out of service`, "warn"); } else if (a.status === "out_of_service") { a.status = "available"; log(`${a.id} is back in service`, "ok"); } else return send(res, 400, { error: "This ambulance is on a job." }); broadcast(); return send(res, 200, { ok: true }); }
     if ((mt = p.match(/^\/api\/hospitals\/(\w+)$/)) && m === "POST") {
       const h = H(mt[1]); if (!h) return send(res, 404, { error: "Not found" }); const b = await body(req);
-      if (b.icuFree != null) h.icuFree = clampN(b.icuFree, 0, h.icuTotal);
-      if (b.bedsFree != null) h.bedsFree = clampN(b.bedsFree, 0, h.bedsTotal);
+      if (b.icuFree != null) h.icuFree = clampN(b.icuFree, 0, h.icuTotal - h.icuReserved);
+      if (b.bedsFree != null) h.bedsFree = clampN(b.bedsFree, 0, h.bedsTotal - h.bedsReserved);
       if (b.erLoad != null) h.erLoad = clampN(b.erLoad, 0, 100);
       if (b.supplies) Object.keys(h.supplies).forEach(k => { if (b.supplies[k] != null) h.supplies[k].stock = clampN(b.supplies[k], 0, 9999); });
       h.updatedAt = now(); log(`${h.name} updated its availability: ${h.icuFree} ICU beds, ${h.bedsFree} beds free`, "info"); broadcast(); return send(res, 200, { ok: true });
     }
+    if ((mt = p.match(/^\/api\/hospitals\/(\w+)\/walkin$/)) && m === "POST") { const h = H(mt[1]); if (!h) return send(res, 404, { error: "Not found" }); const b = await body(req), r = walkIn(h, b.kind === "icu" ? "icu" : "bed"); broadcast(); return send(res, 200, { ...r, icuFree: h.icuFree, bedsFree: h.bedsFree }); }
+    if ((mt = p.match(/^\/api\/conflicts\/([\w-]+)\/resolve$/)) && m === "POST") { const b = await body(req), c = S.conflicts.find(x => x.id === mt[1]), err = resolveConflict(c, b.choice === "reroute" ? "reroute" : "keep", "dispatcher"); if (err) return send(res, 400, { error: err }); broadcast(); return send(res, 200, { ok: true, result: c.result }); }
     if (p === "/api/supplies/suggestions") return send(res, 200, supplySuggestions());
     if (p === "/api/supplies/reallocate" && m === "POST") {
       const b = await body(req), f = H(b.from), t = H(b.to), k = b.item, q = clampN(b.qty, 1, 9999);
