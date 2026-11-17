@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../store.jsx";
-import { ambName, erWord, liveEta } from "../lib.js";
+import { ago, ambName, erWord, liveEta } from "../lib.js";
 import { AiNote, Bar, Empty, HospStatus, Icon, PageHead, Severity, SupplyStatus } from "../components/ui.jsx";
 
 export default function HospitalDetail() {
@@ -20,7 +20,7 @@ export default function HospitalDetail() {
   return (
     <>
       <Link to="/hospitals" className="inline-flex items-center gap-1 text-muted hover:text-ink mb-3"><Icon name="arrow_back" className="!text-[18px]" />All hospitals</Link>
-      <PageHead title={h.name} desc={"Capacity, incoming patients and supplies. Specialist units: " + h.specialties.join(", ") + "."}>
+      <PageHead title={h.name} desc={"Specialist units: " + h.specialties.join(", ") + ". Figures last updated " + ago(h.updatedAt) + " ago."}>
         <HospStatus s={h.status} />
         <button className="btn btn-line" onClick={() => nav("/staff?h=" + h.id)}><Icon name="edit_note" />Update availability</button>
         <button className="btn btn-red" onClick={requestTransfer}><Icon name="swap_horiz" />Request patient transfer</button>

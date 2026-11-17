@@ -3,7 +3,7 @@ export const KM = 0.2;
 export const km = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) * KM;
 export const etaMin = d => Math.max(1, Math.round(d / 0.6));
 export const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? "just now" : m + " min"; };
-export const clock = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+export const clock = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 export const ambName = id => (id ? id.replace("AMB-0", "Ambulance ") : "None");
 export const SEV_ORDER = { Critical: 0, Serious: 1, Moderate: 2 };
 export const sortQueue = list => [...list].sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity] || a.createdAt - b.createdAt);

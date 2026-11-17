@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store.jsx";
-import { erWord } from "../lib.js";
+import { ago, erWord } from "../lib.js";
 import { Bar, HospStatus, Icon, Kpi, PageHead, SupplyStatus } from "../components/ui.jsx";
 
 export default function Hospitals() {
@@ -33,7 +33,7 @@ export default function Hospitals() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {list.map(h => (
           <button key={h.id} onClick={() => nav("/hospitals/" + h.id)} className="card p-5 text-left hover:border-ink transition-colors">
-            <div className="flex items-start justify-between gap-2 mb-4"><div><h3 className="text-[18px] font-semibold">{h.name}</h3><p className="text-muted text-[13px]">{h.specialties.join(" · ")}</p></div><HospStatus s={h.status} /></div>
+            <div className="flex items-start justify-between gap-2 mb-4"><div><h3 className="text-[18px] font-semibold">{h.name}</h3><p className="text-muted text-[13px]">{h.specialties.join(" · ")}</p><p className={"text-[12px] mt-0.5 " + (Date.now() - h.updatedAt > 600000 ? "text-[#92400E] font-semibold" : "text-muted")}>Updated {ago(h.updatedAt)} ago{Date.now() - h.updatedAt > 600000 ? " · may be out of date" : ""}</p></div><HospStatus s={h.status} /></div>
             <div className="space-y-3">
               <div><div className="flex justify-between mb-1"><span>ICU beds free{h.icuReserved > 0 && <span className="text-[#92400E]"> · {h.icuReserved} reserved</span>}</span><b>{h.icuFree} / {h.icuTotal}</b></div><Bar value={h.icuTotal - h.icuFree} max={h.icuTotal} /></div>
               <div><div className="flex justify-between mb-1"><span>General beds free</span><b>{h.bedsFree} / {h.bedsTotal}</b></div><Bar value={h.bedsTotal - h.bedsFree} max={h.bedsTotal} /></div>

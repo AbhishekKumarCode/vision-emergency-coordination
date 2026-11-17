@@ -28,7 +28,7 @@ Every bed is **free**, **reserved** (held for an incoming ambulance from the mom
 - If a bed is free, the walk-in is admitted.
 - If the only bed left is reserved, a **bed conflict** is raised to the dispatcher with a countdown (12 s in the demo).
 - **Time rule:** if the ambulance is within the 5-minute hold window, the recommendation is to keep the reservation and transfer the walk-in. If it is further away and another hospital can take that patient, the recommendation is to give the bed to the walk-in and re-route the ambulance.
-- If nobody decides before the countdown ends, the recommended option is applied automatically and logged.
+- If nobody decides before the countdown ends, the safe default applies and is logged: the reservation is kept and a transfer is created for the walk-in. An ambulance is only ever re-routed by a person.
 
 Who is treated first is a clinical decision. VISION only manages beds and routes.
 

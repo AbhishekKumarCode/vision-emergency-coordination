@@ -18,6 +18,7 @@ export const Dot = ({ tone = "muted", children }) => (
 );
 const SEV = { Critical: "crit", Serious: "warn", Moderate: "info" };
 export const Severity = ({ s }) => <Chip tone={SEV[s]}>{s}</Chip>;
+export const Unverified = () => <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold whitespace-nowrap border border-[#92400E]/40 text-[#92400E]" title="The caller was not sure how serious it is. Treated as serious until a dispatcher confirms."><Icon name="help" className="!text-[14px]" />Urgency not confirmed</span>;
 export const EmStatus = ({ s }) => <Dot tone={EM_STATUS[s].tone}>{EM_STATUS[s].label}</Dot>;
 const HS = { Accepting: "ok", Limited: "warn", Diverting: "crit" };
 export const HospStatus = ({ s }) => <Chip tone={HS[s]}>{s}</Chip>;

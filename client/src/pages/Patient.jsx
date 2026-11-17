@@ -4,7 +4,8 @@ import { EM_STATUS, ambName, areaOf, etaMin, km, liveEta } from "../lib.js";
 import { HospStatus, Icon, PageHead, Steps } from "../components/ui.jsx";
 import CityMap from "../components/CityMap.jsx";
 
-const SEV = [["Life-threatening", "Critical"], ["Serious", "Serious"], ["Not sure", "Moderate"]];
+// "Not sure" is never ranked low: it is treated as serious and flagged for the dispatcher to confirm.
+const SEV = [["Life-threatening", "Critical"], ["Serious", "Serious"], ["Not sure", "Serious"]];
 const TYPES = [["Accident", "car_crash"], ["Chest pain", "cardiology"], ["Breathing problem", "pulmonology"], ["Pregnancy", "pregnant_woman"], ["Burns", "local_fire_department"], ["Other", "more_horiz"]];
 const KEY = "vision.myRequest";
 const read = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
@@ -36,12 +37,12 @@ export default function Patient() {
 
 function Sos({ loc, setLoc, onSent }) {
   const { api, run, notify } = useStore();
-  const [f, setF] = useState({ severity: "", type: "", phone: "", notes: "" });
+  const [f, setF] = useState({ sev: "", type: "", phone: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const send = async () => {
-    if (!f.severity || !f.type) return notify("Please choose how serious it is and what happened.");
+    if (!f.sev || !f.type) return notify("Please choose how serious it is and what happened.");
     setBusy(true);
-    const r = await run(() => api("/sos", { ...f, ...loc }), "SOS sent. Help is being arranged.");
+    const r = await run(() => api("/sos", { type: f.type, phone: f.phone, notes: f.notes, severity: SEV.find(s => s[0] === f.sev)[1], unverified: f.sev === "Not sure", ...loc }), "SOS sent. Help is being arranged.");
     setBusy(false);
     if (r) onSent(r.id);
   };
@@ -54,7 +55,7 @@ function Sos({ loc, setLoc, onSent }) {
         <p className="text-[12px] text-muted mt-1">Tap the map to move the pin. Near {areaOf(loc)}.</p>
       </div>
       <div><div className="font-semibold mb-1.5">How serious is it?</div>
-        <div className="grid grid-cols-3 gap-2">{SEV.map(([l, v]) => <button key={v} onClick={() => setF({ ...f, severity: v })} className={"h-12 rounded-lg border text-[13px] font-semibold " + (f.severity === v ? "border-brand bg-[#FFF6F5] text-[#B50C08]" : "border-line")}>{l}</button>)}</div></div>
+        <div className="grid grid-cols-3 gap-2">{SEV.map(([l]) => <button key={l} onClick={() => setF({ ...f, sev: l })} className={"h-12 rounded-lg border text-[13px] font-semibold " + (f.sev === l ? "border-brand bg-[#FFF6F5] text-[#B50C08]" : "border-line")}>{l}</button>)}</div></div>
       <div><div className="font-semibold mb-1.5">What happened?</div>
         <div className="grid grid-cols-2 gap-2">{TYPES.map(([t, ic]) => <button key={t} onClick={() => setF({ ...f, type: t })} className={"h-12 rounded-lg border flex items-center gap-2 px-3 text-left " + (f.type === t ? "border-brand bg-[#FFF6F5] text-[#B50C08] font-semibold" : "border-line")}><Icon name={ic} className="!text-[18px]" />{t}</button>)}</div></div>
       <input className="field" type="tel" inputMode="tel" maxLength={20} placeholder="Phone number (optional)" aria-label="Phone number" value={f.phone} onChange={ev => setF({ ...f, phone: ev.target.value })} />

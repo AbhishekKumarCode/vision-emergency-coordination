@@ -72,7 +72,7 @@ export default function App() {
           <div className="flex items-center gap-2 shrink-0">
             <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] text-muted border border-line rounded px-2 py-1" title="Engine used for AI suggestions"><Icon name="psychology" className="!text-[15px]" />{st ? st.ai : "AI"}</span>
             <span className="font-mono text-[11px] text-[#92400E] bg-[#FEF3C7] rounded px-2 py-1">Demo data</span>
-            <button className="btn btn-line btn-sm" title="Reset the demo data" onClick={() => run(() => api("/reset", {}), "Demo data was reset")}><Icon name="restart_alt" className="!text-[18px]" /><span className="hidden sm:inline">Reset</span></button>
+            <button className="btn btn-line btn-sm" title="Reset the demo data" onClick={() => { if (window.confirm("Reset the demo data? This clears the current scenario for everyone using this link.")) run(() => api("/reset", {}), "Demo data was reset"); }}><Icon name="restart_alt" className="!text-[18px]" /><span className="hidden sm:inline">Reset</span></button>
           </div>
         </header>
         <main className="flex-1 p-4 lg:p-6 dash-rise">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../store.jsx";
 import { EM_STATUS, ago, ambName, liveEta, sortQueue } from "../lib.js";
-import { AiNote, EmStatus, Empty, Icon, Loading, PageHead, Severity, Steps } from "../components/ui.jsx";
+import { AiNote, EmStatus, Empty, Icon, Loading, PageHead, Severity, Steps, Unverified } from "../components/ui.jsx";
 import CityMap from "../components/CityMap.jsx";
 
 const TABS = [["all", "All"], ["critical", "Critical"], ["waiting", "Waiting"], ["progress", "In progress"], ["completed", "Completed"]];
@@ -49,7 +49,7 @@ export default function Emergencies() {
                   <tr key={e.id} onClick={() => nav("/emergencies/" + e.id)} className={"cursor-pointer " + (sel && sel.id === e.id ? "bg-soft shadow-[inset_4px_0_0_#D92D20]" : "hover:bg-[#FAFBFC]")}>
                     <td className="td pl-4 font-mono text-[12px] font-semibold">{e.id}</td>
                     <td className="td font-semibold">{e.type}</td>
-                    <td className="td"><Severity s={e.severity} /></td>
+                    <td className="td"><span className="flex flex-col items-start gap-1"><Severity s={e.severity} />{e.unverified && <Unverified />}</span></td>
                     <td className="td text-muted">{e.area}</td>
                     <td className="td font-mono text-[12px]">{e.status === "completed" ? "-" : ago(e.createdAt)}</td>
                     <td className="td"><EmStatus s={e.status} /></td>
@@ -75,7 +75,7 @@ function Detail({ e }) {
     <div className="card p-5 space-y-4">
       <div className="flex items-start justify-between gap-3 pb-3 border-b border-line">
         <div><div className="lbl">Selected emergency</div><h2 className="text-[22px] font-semibold leading-7">{e.type}</h2><p className="text-muted">{e.id} · {e.area}</p></div>
-        <Severity s={e.severity} />
+        <span className="flex flex-col items-end gap-1"><Severity s={e.severity} />{e.unverified && <Unverified />}</span>
       </div>
       <Steps step={e.status === "waiting" ? 0 : EM_STATUS[e.status].step} />
       {e.notes && <div className="bg-soft rounded-lg p-3"><div className="lbl mb-1">Caller notes</div><p>{e.notes}</p></div>}

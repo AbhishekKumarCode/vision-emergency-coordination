@@ -36,7 +36,7 @@ export default function Conflicts() {
                 <Opt choice="keep" title="Keep the reservation" sub={"The ambulance patient keeps the bed. A transfer is created for the walk-in patient."} />
                 <Opt choice="reroute" disabled={!c.alt} title={c.alt ? "Give the bed to the walk-in" : "Re-route not possible"} sub={c.alt ? `${ambName(c.ambulanceId)} is re-routed to ${c.alt.name}, about ${c.alt.eta} min.` : "No other hospital has a suitable bed."} />
               </div>
-              <p className="text-[12px] text-muted mt-3">If nobody decides in time, the recommended option is applied automatically. Who is treated first is a clinical decision; VISION only manages beds and routes.</p>
+              <p className="text-[12px] text-muted mt-3">If nobody decides in time, the safe default applies: the reservation is kept and a transfer is created for the walk-in patient. Who is treated first is a clinical decision; VISION only manages beds and routes.</p>
             </div>
             <div className="h-1 bg-[#FFDAD6]"><div className="h-full bg-brand transition-[width] duration-1000 ease-linear" style={{ width: pct + "%" }} /></div>
           </div>
