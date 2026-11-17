@@ -1,7 +1,7 @@
 import { useStore } from "../store.jsx";
 
 // Schematic city map (100 x 60 units). Shows hospitals, ambulances and active emergencies live.
-export default function CityMap({ focus, amb, pick, onPick, labels = true, className = "" }) {
+export default function CityMap({ focus, amb, pick, onPick, labels = true, className = "", height }) {
   const { st } = useStore();
   if (!st) return null;
   const ems = st.emergencies.filter(e => e.status !== "completed");
@@ -18,7 +18,7 @@ export default function CityMap({ focus, amb, pick, onPick, labels = true, class
   };
   const ambFill = s => (s === "available" ? "#111827" : s === "out_of_service" ? "#9CA3AF" : "#B45309");
   return (
-    <div className={"relative bg-[#EEF2F6] overflow-hidden " + className} style={{ aspectRatio: "100 / 60" }}>
+    <div className={"relative bg-[#EEF2F6] overflow-hidden " + className} style={height ? { height } : { aspectRatio: "100 / 60" }}>
       <svg viewBox="0 0 100 60" className={"absolute inset-0 w-full h-full " + (onPick ? "cursor-crosshair" : "")} onClick={click} role="img" aria-label="City map with hospitals, ambulances and emergencies">
         <defs><pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M5 0H0V5" fill="none" stroke="#E2E8F0" strokeWidth=".15" /></pattern></defs>
         <rect width="100" height="60" fill="url(#grid)" />

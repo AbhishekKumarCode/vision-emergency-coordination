@@ -60,7 +60,7 @@ export default function Overview() {
             <h3 className="text-[16px] font-semibold flex items-center gap-2"><Icon name="map" className="text-muted" />City map</h3>
             <MapLegend />
           </div>
-          <CityMap />
+          <CityMap height={300} />
           <div className="p-4 border-t border-line">
             <div className="flex items-center justify-between mb-2"><h3 className="font-semibold flex items-center gap-2"><Icon name="history" className="text-muted !text-[18px]" />Recent activity</h3><span className="text-[12px] text-muted">Updates live</span></div>
             <ul className="divide-y divide-[#F3F4F6]">
