@@ -17,7 +17,7 @@ export default function Hospitals() {
   return (
     <>
       <PageHead title="Hospitals" desc="Which hospitals have space right now, and which are under pressure.">
-        <button className="btn btn-line" onClick={() => nav("/staff")}><Icon name="edit_note" />Update a hospital</button>
+        <button className="btn btn-line" onClick={() => nav("/staff")}><Icon name="edit_note" />Update hospitals</button>
       </PageHead>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Kpi label="Accepting" value={n("Accepting")} sub="Normal capacity" icon="check_circle" tone="text-ok" />

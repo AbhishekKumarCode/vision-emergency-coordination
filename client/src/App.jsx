@@ -19,7 +19,7 @@ const NAV = [
   ["Operations", [["/overview", "dashboard", "Overview"], ["/emergencies", "e911_emergency", "Emergencies"], ["/ambulances", "ambulance", "Ambulances"]]],
   ["Resources", [["/hospitals", "local_hospital", "Hospitals"], ["/supplies", "inventory_2", "Supplies"], ["/transfers", "swap_horiz", "Transfers"]]],
   ["Intelligence", [["/insights", "psychology", "AI Insights"]]],
-  ["Portals", [["/staff", "edit_note", "Hospital staff update"], ["/patient", "sos", "Patient app"]]]
+  ["Portals", [["/staff", "edit_note", "Update hospitals"], ["/patient", "sos", "Patient app"]]]
 ];
 
 export default function App() {
