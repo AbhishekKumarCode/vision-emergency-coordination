@@ -12,6 +12,8 @@ import Insights from "./pages/Insights.jsx";
 import StaffUpdate from "./pages/StaffUpdate.jsx";
 import Patient from "./pages/Patient.jsx";
 import Conflicts from "./components/Conflicts.jsx";
+import Intro from "./components/Intro.jsx";
+import Landing from "./pages/Landing.jsx";
 
 const NAV = [
   ["Operations", [["/overview", "dashboard", "Overview"], ["/emergencies", "e911_emergency", "Emergencies"], ["/ambulances", "ambulance", "Ambulances"]]],
@@ -25,14 +27,16 @@ export default function App() {
   const nav = useNavigate(), loc = useLocation();
   const role = loc.pathname.startsWith("/patient") ? "/patient" : loc.pathname.startsWith("/staff") ? "/staff" : "/overview";
   const waiting = st ? st.emergencies.filter(e => e.status === "waiting").length : 0;
+  if (loc.pathname === "/") return <Landing />;
   return (
     <>
+      <Intro />
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-60 bg-white border-r border-line z-40 flex-col justify-between">
         <div className="min-h-0 flex flex-col">
-          <div className="h-16 px-4 border-b border-line flex items-center gap-3 shrink-0">
+          <NavLink to="/" title="Back to the home page" className="h-16 px-4 border-b border-line flex items-center gap-3 shrink-0 hover:bg-soft">
             <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center"><Icon name="emergency" /></div>
             <div><div className="text-[18px] font-semibold tracking-tight leading-none">VISION</div><div className="lbl !text-[10px] mt-0.5">Emergency Coordination</div></div>
-          </div>
+          </NavLink>
           <nav className="p-2 space-y-4 overflow-y-auto">
             {NAV.map(([group, items]) => (
               <div key={group} className="space-y-0.5">
@@ -58,7 +62,7 @@ export default function App() {
       <div className="lg:pl-60 min-h-screen flex flex-col">
         <header className="sticky top-0 h-16 bg-white border-b border-line z-30 flex items-center justify-between px-4 lg:px-6 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="lg:hidden w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0"><Icon name="emergency" /></div>
+            <NavLink to="/" aria-label="Home" className="lg:hidden w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0"><Icon name="emergency" /></NavLink>
             <select aria-label="Go to page" className="lg:hidden h-9 border border-line rounded-lg px-2 bg-white max-w-[180px]" value={"/" + loc.pathname.split("/")[1]} onChange={e => nav(e.target.value)}>
               {NAV.flatMap(g => g[1]).map(([to, , label]) => <option key={to} value={to}>{label}</option>)}
             </select>
@@ -71,7 +75,7 @@ export default function App() {
             <button className="btn btn-line btn-sm" title="Reset the demo data" onClick={() => run(() => api("/reset", {}), "Demo data was reset")}><Icon name="restart_alt" className="!text-[18px]" /><span className="hidden sm:inline">Reset</span></button>
           </div>
         </header>
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 dash-rise">
           {st && !loc.pathname.startsWith("/patient") && <Conflicts />}
           {!st ? <Loading text="Connecting to the VISION network..." /> : (
             <Routes>

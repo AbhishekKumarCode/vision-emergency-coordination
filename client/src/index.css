@@ -21,3 +21,20 @@
 .pulse { animation: pulse 1.6s ease-out infinite; transform-origin: center; transform-box: fill-box; }
 @keyframes pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+
+/* ---- intro animation and landing page motion ---- */
+html { scroll-behavior: smooth; }
+.intro-mark { animation: introMark .6s cubic-bezier(.2,1.4,.4,1) both; }
+.intro-rise { animation: rise .5s ease-out both; }
+.intro-ecg { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ecg 1.25s .25s ease-in-out forwards; }
+.land-rise { animation: rise .6s ease-out both; }
+.land-ecg { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ecg 1.6s .4s ease-in-out forwards; }
+.dash-rise { animation: rise .5s 1.75s ease-out both; }
+@keyframes introMark { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ecg { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .intro-mark, .intro-rise, .land-rise, .dash-rise { animation: none; }
+  .intro-ecg, .land-ecg { animation: none; stroke-dashoffset: 0; }
+}

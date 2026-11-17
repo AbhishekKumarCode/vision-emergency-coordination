@@ -10,6 +10,7 @@ VISION connects patients, ambulances, hospitals and administrators during crisis
 
 | Area | What it does |
 |---|---|
+| Landing page | Explains the problem, the four-step flow and the features, with a live preview of the network |
 | Patient app | SOS request (map pin, urgency, type), live ambulance status and ETA, nearby hospitals, pharmacies and blood banks |
 | Overview | Situation summary, key numbers, live city map, activity feed, "needs action" queue |
 | Emergencies | Queue sorted by urgency and waiting time, AI dispatch suggestion with reasons and alternatives, manual override |
