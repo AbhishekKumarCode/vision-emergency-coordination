@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-page text-ink antialiased text-[14px] font-sans; }
+  input, select, textarea { font: inherit; }
+}
+@layer components {
+  .card { @apply bg-white border border-line rounded-xl; }
+  .lbl { @apply font-mono text-[11px] uppercase tracking-wider text-muted font-medium; }
+  .btn { @apply h-11 px-4 rounded-lg font-semibold text-[14px] inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none; }
+  .btn-red { @apply bg-brand text-white hover:bg-brandDark; }
+  .btn-line { @apply bg-white border border-line text-ink hover:border-ink; }
+  .btn-sm { @apply h-[34px] px-3 text-[13px]; }
+  .field { @apply w-full h-11 px-3 bg-white border border-line rounded-lg focus:border-ink focus:outline-none; }
+  .th { @apply py-3 px-3 text-left font-mono text-[11px] uppercase tracking-wider text-muted font-medium; }
+  .td { @apply py-3 px-3 align-middle; }
+}
+.material-symbols-outlined { font-size: 20px; line-height: 1; vertical-align: middle; }
+.pulse { animation: pulse 1.6s ease-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
