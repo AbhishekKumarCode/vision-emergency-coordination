@@ -50,6 +50,7 @@ Optional: `GEMINI_API_KEY=...` or `ANTHROPIC_API_KEY=...` to enable model-writte
 
 - All data is simulated demo data with fictional hospitals. The map is a schematic city grid (20 x 12 km).
 - State is kept in memory. On Vercel it lives in the running function instance, so it resets when the instance restarts. A database (for example Postgres) is the next step for production.
+- There is no login in this hackathon build: the role switcher (Admin, Hospital staff, Patient) is for the demo. Production needs authentication and role checks on every write endpoint, and patients should only see their own request.
 - Ambulances move faster than real time so the demo flow completes in under a minute.
 
 ## Built with AI

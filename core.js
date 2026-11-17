@@ -51,7 +51,7 @@ const supStatus = s => s.stock <= 0 ? "Out" : s.stock < s.min ? "Low" : "OK";
 function publicState() {
   return {
     hospitals: S.hospitals.map(h => ({ ...h, status: hStatus(h), supplies: Object.fromEntries(Object.entries(h.supplies).map(([k, v]) => [k, { ...v, status: supStatus(v), label: ITEMS[k] }])) })),
-    ambulances: S.ambulances, emergencies: S.emergencies, transfers: S.transfers, services: S.services, events: S.events.slice(0, 14),
+    ambulances: S.ambulances, emergencies: S.emergencies.map(({ phone, ...e }) => e), transfers: S.transfers, services: S.services, events: S.events.slice(0, 14),
     avgResponse: +(S.responseTimes.reduce((a, b) => a + b, 0) / S.responseTimes.length).toFixed(1),
     ai: process.env.GEMINI_API_KEY ? "Gemini" : process.env.ANTHROPIC_API_KEY ? "Claude" : "Rules engine", t: now()
   };
@@ -205,7 +205,7 @@ async function handle(req, res) {
     if (p === "/api/supplies/suggestions") return send(res, 200, supplySuggestions());
     if (p === "/api/supplies/reallocate" && m === "POST") {
       const b = await body(req), f = H(b.from), t = H(b.to), k = b.item, q = clampN(b.qty, 1, 9999);
-      if (!f || !t || !f.supplies[k] || f.supplies[k].stock < q) return send(res, 400, { error: "That stock is no longer available." });
+      if (!f || !t || f === t || typeof k !== "string" || !Object.hasOwn(ITEMS, k) || f.supplies[k].stock < q) return send(res, 400, { error: "That stock is no longer available." });
       f.supplies[k].stock -= q; t.supplies[k].stock += q; log(`${q} ${ITEMS[k].toLowerCase()} moved from ${f.name} to ${t.name}`, "ok"); broadcast(); return send(res, 200, { ok: true });
     }
     if (p === "/api/transfers" && m === "POST") {

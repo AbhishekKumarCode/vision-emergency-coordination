@@ -8,7 +8,7 @@ const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".
 
 http.createServer((req, res) => {
   const p = new URL(req.url, "http://x").pathname;
-  if (p.startsWith("/api/")) return core.handle(req, res);
+  if (p === "/api" || p.startsWith("/api/")) return core.handle(req, res);   // "/api?__p=..." is the Vercel rewrite form
   const file = path.join(DIST, path.normalize(p === "/" ? "/index.html" : p).replace(/^(\.\.[\/\\])+/, ""));
   if (!file.startsWith(DIST)) { res.writeHead(403); return res.end("Forbidden"); }
   fs.readFile(file, (err, data) => {
